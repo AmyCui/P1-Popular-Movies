@@ -43,7 +43,7 @@ public class GridViewAdapter extends ArrayAdapter {
         image = (ImageView) row.findViewById(R.id.image);
         if(data != null) {
             String thumbnailPath = Utility.GetThumbnailUrlString(((String[])data.get(position))[Utility.MovieDetailItem.poster_path.ordinal()], Utility.PosterSize.w185.toString());
-            Picasso.with(this.context).load(thumbnailPath).into(image);
+            Picasso.with(this.context).load(thumbnailPath).error(R.drawable.defaul_image).into(image);
         }
         return row;
     }
