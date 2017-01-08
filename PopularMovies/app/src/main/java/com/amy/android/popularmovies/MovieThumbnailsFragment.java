@@ -46,7 +46,7 @@ public class MovieThumbnailsFragment extends Fragment implements LoaderManager.L
     //region fields
     private GridViewAdapter mThumbnailImageAdapter;
     private String mSortType;
-    public static boolean mIsInFavoritesMode = false;
+    public static boolean mIsInFavoritesMode;
     //endregion
 
     //region constructor
@@ -138,7 +138,7 @@ public class MovieThumbnailsFragment extends Fragment implements LoaderManager.L
         switch (item.getItemId())
         {
             case R.id.action_settings:
-                mIsInFavoritesMode = false;
+
                 Intent settings = new Intent(getActivity(), SettingsActivity.class);
                 startActivity(settings);
                 return true;
@@ -178,7 +178,7 @@ public class MovieThumbnailsFragment extends Fragment implements LoaderManager.L
     public void onLoadFinished(Loader<Object> loader, Object data) {
         // for movies loader, parse the data from JSON format and set to view
         // for favorites loader, load data from Cursor and set to view
-        if(loader.getId() == MOVIES_LOADER) {
+        if(loader.getId() == MOVIES_LOADER && !mIsInFavoritesMode) {
             if (data != null) {
                 try {
                     List<String[]> movieDetails = Utility.GetMovieSortTypeResultFromJson(data.toString());
@@ -187,7 +187,7 @@ public class MovieThumbnailsFragment extends Fragment implements LoaderManager.L
                     e.printStackTrace();
                 }
             }
-        }else if(loader.getId() == FAVORITES_LOADER){
+        }else if(loader.getId() == FAVORITES_LOADER && mIsInFavoritesMode){
             Cursor resultCursor = (Cursor)data;
             List<String[]> favoriteMovies = Utility.getMovieThumbnailsFromFavoriteCursor(resultCursor);
             setmThumbnailImageAdapter(favoriteMovies);
