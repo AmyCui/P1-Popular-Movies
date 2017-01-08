@@ -22,12 +22,12 @@
     </style>
 
     <style name="SubtitleTextStyle" parent="DetailGeneralTextStyle">
-        <item name="android:textSize">10sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:paddingLeft">10dp</item>
     </style>
 
     <style name="ReviewTextStyle" parent="SynopsisTextStyle">
-        <item name="android:textSize">10sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="DetailHorizontalLinearLayoutGroupStyle">

@@ -233,7 +233,7 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
             mImageView.setImageBitmap(BitmapFactory.decodeFile(posterPath));
         } else {
             String posterUrl = Utility.GetThumbnailUrlString(posterPath, Utility.PosterSize.w500.toString());
-            Picasso.with(getActivity()).load(posterPath).into(mImageView);
+            Picasso.with(getActivity()).load(posterUrl).into(mImageView);
         }
         mTitleText.setText(details[Utility.MovieDetailItem.title.ordinal()]);
         getActivity().setTitle(mTitleText.getText());
