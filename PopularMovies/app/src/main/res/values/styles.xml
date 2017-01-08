@@ -12,13 +12,22 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/colorBlack</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:padding">10dp</item>
     </style>
 
     <style name="SynopsisTextStyle" parent="DetailGeneralTextStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="SubtitleTextStyle" parent="DetailGeneralTextStyle">
+        <item name="android:textSize">10sp</item>
+        <item name="android:paddingLeft">10dp</item>
+    </style>
+
+    <style name="ReviewTextStyle" parent="SynopsisTextStyle">
+        <item name="android:textSize">10sp</item>
     </style>
 
     <style name="DetailHorizontalLinearLayoutGroupStyle">
@@ -28,6 +37,12 @@
         <item name="android:layout_gravity">center</item>
         <item name="android:paddingLeft">10dp</item>
         <item name="android:paddingTop">5dp</item>
+    </style>
+
+    <style name="Divider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">?android:attr/listDivider</item>
     </style>
 
 </resources>

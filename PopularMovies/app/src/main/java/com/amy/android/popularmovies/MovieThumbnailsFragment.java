@@ -1,13 +1,16 @@
 package com.amy.android.popularmovies;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -16,40 +19,43 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.GridView;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.squareup.picasso.Picasso;
+import com.amy.android.popularmovies.data.MovieContract;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-/*
-* This class is a Fragment that gets the movie data from themoviedb and display them to a GridView
-*/
-public class MovieThumbnailsFragment extends Fragment {
+/**
+ * This class is a Fragment that gets the movie data from themoviedb, or Favorites database and display them to a GridView
+ */
+public class MovieThumbnailsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Object> {
 
+    //region constants
     private final static String LOG_TAG = MovieThumbnailsFragment.class.getName();
+    private final static int MOVIES_LOADER = 100;
+    private final static int FAVORITES_LOADER = 101;
+    //endregion
 
+    //region fields
     private GridViewAdapter mThumbnailImageAdapter;
+    private String mSortType;
+    public static boolean mIsInFavoritesMode = false;
+    //endregion
 
+    //region constructor
     public MovieThumbnailsFragment() {
         // Required empty public constructor
     }
+    //endregion
 
+    //region fragment overrides
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,14 +75,56 @@ public class MovieThumbnailsFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent detailView = new Intent(getActivity(), MovieDetailActivity.class);
-                detailView.putExtra( Intent.EXTRA_TEXT, mThumbnailImageAdapter.getItem(i));
+                detailView.putExtra( Intent.EXTRA_TEXT, mThumbnailImageAdapter.getItem(i)[Utility.MovieSortTypeItem.id.ordinal()]);
                 startActivity(detailView);
             }
         });
-        //Gets movie data
-        new FetchMoviesTask().execute();
+
         return rootView;
     }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        // check if user settings is in show favorites mode or not
+        // then set the loader accordingly
+        mIsInFavoritesMode = getFavoriteModeFromSetting();
+        if(mIsInFavoritesMode){
+            getLoaderManager().initLoader(FAVORITES_LOADER,null, this).forceLoad();
+        }else{
+            mSortType = getSortTypeFromSetting();
+            getLoaderManager().initLoader(MOVIES_LOADER,null,this).forceLoad();
+        }
+        super.onActivityCreated(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+
+        if(getFavoriteModeFromSetting()) {
+            // if user just changed from sort type mode to favorites mode, start the CursorLoader for Favorites database
+            if(mIsInFavoritesMode != getFavoriteModeFromSetting()) {
+                mIsInFavoritesMode = getFavoriteModeFromSetting();
+                getLoaderManager().initLoader(FAVORITES_LOADER, null, this).forceLoad();
+            }
+        }else{
+            if(mIsInFavoritesMode != getFavoriteModeFromSetting()){
+                //if user just changed from the favorites mode to sort type mode,
+                // starts the movies loader
+                mIsInFavoritesMode = getFavoriteModeFromSetting();
+                getLoaderManager().initLoader(MOVIES_LOADER, null, this).forceLoad();
+            }else {
+                //if user has been in sort type mode, check if user has changed the sort type setting
+                String sortType = getSortTypeFromSetting();
+                if (sortType != null && sortType != mSortType) {
+                    mSortType = sortType;
+                    onSortTypeChanged();
+                }
+            }
+        }
+
+        super.onResume();
+    }
+
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -90,6 +138,7 @@ public class MovieThumbnailsFragment extends Fragment {
         switch (item.getItemId())
         {
             case R.id.action_settings:
+                mIsInFavoritesMode = false;
                 Intent settings = new Intent(getActivity(), SettingsActivity.class);
                 startActivity(settings);
                 return true;
@@ -97,99 +146,131 @@ public class MovieThumbnailsFragment extends Fragment {
                 return super.onOptionsItemSelected(item);
         }
     }
+    //endregion
+
+    //region loader callbacks
+    @Override
+    public Loader<Object> onCreateLoader(int id, Bundle args) {
+        // for movies loader, start the MoviesResultLoader to query data from theMovieDb
+        // for favorites loader, start a CursorLoader to query data from Favorites database
+        switch (id){
+            case MOVIES_LOADER:
+                URL moviesUrl = null;
+                try {
+                    moviesUrl = buildSortTypeRequestURL();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                return new MoviesResultLoader(getActivity(),moviesUrl);
+
+            case FAVORITES_LOADER:
+                return (Loader)(new CursorLoader(getActivity(), MovieContract.FavoritesEntry.CONTENT_URI,null,null,null,null));
+
+            default:
+                Log.e(LOG_TAG, "Unknown loader id");
+                return null;
+        }
+    }
+
+
 
     @Override
-    public void onStart() {
-        super.onStart();
-        new FetchMoviesTask().execute();
+    public void onLoadFinished(Loader<Object> loader, Object data) {
+        // for movies loader, parse the data from JSON format and set to view
+        // for favorites loader, load data from Cursor and set to view
+        if(loader.getId() == MOVIES_LOADER) {
+            if (data != null) {
+                try {
+                    List<String[]> movieDetails = Utility.GetMovieSortTypeResultFromJson(data.toString());
+                    setmThumbnailImageAdapter(movieDetails);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }else if(loader.getId() == FAVORITES_LOADER){
+            Cursor resultCursor = (Cursor)data;
+            List<String[]> favoriteMovies = Utility.getMovieThumbnailsFromFavoriteCursor(resultCursor);
+            setmThumbnailImageAdapter(favoriteMovies);
+        }
     }
 
-    public class FetchMoviesTask extends AsyncTask<Void, Void, List<String[]>> {
-
-        @Override
-        protected List<String[]> doInBackground(Void... voids) {
-
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-
-            String moviesJsonStr = null;
-            // Page number to request from 1 to 1000
-            // not currently taking into account
-            int numPages = 1;
-
-            try {
-                final String FORECAST_BASE_URL = "http://api.themoviedb.org/3/movie";
-                final String PAGE_PARAM = "page";
-                final String APPID_PARAM = "api_key";
-
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                String sortType = preferences.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_popular_value));
-
-                Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                        .appendPath(sortType)
-                        .appendQueryParameter(PAGE_PARAM, Integer.toString(numPages))
-                        .appendQueryParameter(APPID_PARAM, BuildConfig.MOVIEDB_API_KEY)
-                        .build();
-
-                URL url = new URL(builtUri.toString());
-
-                // Create the request to OpenWeatherMap, and open the connection
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                long count = 0;
-                while ((line = reader.readLine()) != null) {
-                    count += line.length();
-                    buffer.append(line + "\n");
-                }
-                moviesJsonStr = buffer.toString();
-                List<String[]> movieDetails = Utility.GetMovieDetailFromJson(moviesJsonStr);
-                return movieDetails;
-
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Error ", e);
-                return null;
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e(LOG_TAG, "Error closing stream", e);
-                    }
-                }
-            }
-        }
-
-        @Override
-        protected void onPostExecute(List<String[]> strings) {
-            super.onPostExecute(strings);
-            if(strings != null) {
-                List<String[]> resultArray = strings;
-                //build thumbnails
-                mThumbnailImageAdapter.clear();
-                mThumbnailImageAdapter.addAll(resultArray);
-            }
-            else{
-                Toast.makeText(getActivity(), "Please check your internet connection!", Toast.LENGTH_SHORT).show();
-            }
-
-        }
+    @Override
+    public void onLoaderReset(Loader<Object> loader) {
 
     }
+    //endregion
+
+    //region private methods
+
+    /**
+     * restart the movies loader when sort type changes
+     */
+    private void onSortTypeChanged()
+    {
+        getLoaderManager().restartLoader(MOVIES_LOADER, null, this).forceLoad();
+    }
+
+    /**
+     * get current sort type from setting
+     * @return by popular, or by top-rated
+     */
+    private String getSortTypeFromSetting(){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sortType = preferences.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_popular_value));
+        return sortType;
+    }
+
+    /**
+     * get if is in show favorite mode or not from setting
+     * @return
+     */
+    private boolean getFavoriteModeFromSetting(){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        boolean inFavoriteMode = preferences.getBoolean(getResources().getString(R.string.pref_favorite_key),false);
+        return inFavoriteMode;
+    }
+    //endregion
+
+    //region public methods
+
+    /**
+     * builds the theMovieDb http request url for movie id and poster_path
+     * @return
+     * @throws MalformedURLException
+     */
+    public URL buildSortTypeRequestURL() throws MalformedURLException {
+        final String MOVIES_BASE_URL = "http://api.themoviedb.org/3/movie";
+        final String PAGE_PARAM = "page";
+        final String APPID_PARAM = "api_key";
+
+
+        Uri builtUri = Uri.parse(MOVIES_BASE_URL).buildUpon()
+                .appendPath(mSortType)
+                .appendQueryParameter(APPID_PARAM, BuildConfig.MOVIEDB_API_KEY)
+                .build();
+
+        URL url = new URL(builtUri.toString());
+        return url;
+    }
+
+    /**
+     * set the thumbnail image to the current adapter
+     * @param strings
+     */
+    public void setmThumbnailImageAdapter(List<String[]> strings)
+    {
+        if(strings != null) {
+            List<String[]> resultArray = strings;
+            //build thumbnails
+            mThumbnailImageAdapter.clear();
+            mThumbnailImageAdapter.addAll(resultArray);
+        }
+        else{
+            Toast.makeText(getActivity(), "Please check your internet connection!", Toast.LENGTH_SHORT).show();
+        }
+    }
+    //endregion
+
+
 
 }

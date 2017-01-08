@@ -2,5 +2,4 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:title="@string/settings"
         android:id="@+id/action_settings"/>
-
 </menu>

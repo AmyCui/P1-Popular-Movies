@@ -2,37 +2,34 @@ package com.amy.android.popularmovies;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
-/*
-* This class is a custom GridView ArrayAdapter that gets/sets ImageView tot he GridView
-*/
-public class GridViewAdapter extends ArrayAdapter {
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
+public class ReviewsListViewAdapater extends ArrayAdapter{
+
 
     private Context context;
     private int layoutResourceId;
     private ArrayList data = new ArrayList();
 
-    public GridViewAdapter(Context context, int layoutResourceId, ArrayList data) {
+    public ReviewsListViewAdapater(Context context, int layoutResourceId, ArrayList data){
         super(context, layoutResourceId, data);
         this.layoutResourceId = layoutResourceId;
         this.context = context;
         this.data = data;
     }
-
     @Override
     public View getView(int position, View view, ViewGroup parent) {
         View row = view;
@@ -43,17 +40,11 @@ public class GridViewAdapter extends ArrayAdapter {
             row = inflater.inflate(layoutResourceId, parent, false);
         }
 
-        image = (ImageView) row.findViewById(R.id.image);
+        ViewHolder holder = new ViewHolder(row);
+
         if(data != null) {
-            String thumbnailPath = ((String[])data.get(position))[Utility.MovieSortTypeItem.poster_path.ordinal()];
-            //when is in favorite mode, can just load the thumbnail from local.
-            //otherwise query from internet
-            if(MovieThumbnailsFragment.mIsInFavoritesMode){
-                image.setImageBitmap(BitmapFactory.decodeFile(thumbnailPath));
-            }else{
-                String thumbnailUrl = Utility.GetThumbnailUrlString(thumbnailPath, Utility.PosterSize.w185.toString());
-                Picasso.with(this.context).load(thumbnailUrl).error(R.drawable.defaul_image).into(image);
-            }
+            holder.setAuthorText(((String[])data.get(position))[Utility.MovieReviewItem.author.ordinal()]);
+            holder.setContentText(((String[])data.get(position))[Utility.MovieReviewItem.content.ordinal()]);
         }
         return row;
     }
@@ -80,11 +71,21 @@ public class GridViewAdapter extends ArrayAdapter {
         }
     }
 
-    @Nullable
-    @Override
-    public String[] getItem(int position) {
-        return (String[])data.get(position);
+    static class ViewHolder{
+        @BindView(R.id.author_text) TextView mAuthorText;
+        @BindView(R.id.content_text) TextView mContentText;
+
+        public ViewHolder(View view){
+            ButterKnife.bind(this, view);
+        }
+
+        public void setAuthorText(String author){
+            mAuthorText.setText(author);
+        }
+
+        public void setContentText(String content){
+            mContentText.setText(content);
+        }
     }
+
 }
-
-

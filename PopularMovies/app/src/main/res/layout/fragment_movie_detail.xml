@@ -1,55 +1,118 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
     tools:context="com.amy.android.popularmovies.MovieDetailFragment"
-    android:orientation="vertical">
-
-    <ImageView
-        android:layout_width="wrap_content"
+    >
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:id="@+id/thumbnail_image"
-        android:padding="10dp"/>
+        android:orientation="vertical">
 
-    <LinearLayout
-        style="@style/DetailHorizontalLinearLayoutGroupStyle">
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="right"
-            android:text="@string/title_label"/>
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="left"
-            android:id="@+id/title_text"/>
-    </LinearLayout>
-    <LinearLayout
-        style="@style/DetailHorizontalLinearLayoutGroupStyle">
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="right"
-            android:text="@string/release_date_label"/>
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="left"
-            android:id="@+id/release_date_text"/>
-    </LinearLayout>
-    <LinearLayout
-        style="@style/DetailHorizontalLinearLayoutGroupStyle">
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="right"
-            android:text="@string/vote_average_label"/>
-        <TextView
-            style="@style/DetailGeneralTextStyle"
-            android:layout_gravity="left"
-            android:id="@+id/vote_average_text"/>
+    <!-- Movie details view -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:id="@+id/thumbnail_image"
+                android:padding="10dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/DetailGeneralTextStyle"
+                    android:textStyle="bold"
+                    android:layout_gravity="left"
+                    android:id="@+id/title_text"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@color/highlightYellow"
+                        android:id="@+id/vote_average_text"
+                        android:layout_gravity="center"
+                        android:layout_marginLeft="10dp"
+                        style="@style/DetailGeneralTextStyle"/>
+                    <ToggleButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:textOn="@string/save_as_favorite_on_text"
+                        android:textOff="@string/save_as_favorite_off_text"
+                        android:id="@+id/save_as_favorite_btn"/>
+                </LinearLayout>
+                <TextView
+                    style="@style/DetailGeneralTextStyle"
+                    android:layout_gravity="left"
+                    android:id="@+id/release_date_text"/>
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <TextView
+                        style="@style/SynopsisTextStyle"
+                        android:layout_gravity="start"
+                        android:id="@+id/synopsis_text"/>
+                </ScrollView>
+
+            </LinearLayout>
+        </LinearLayout>
+    <!-- divider -->
+        <View style="@style/Divider"/>
+    <!-- Trailer view. This will be populated programmatically when trailer data is retrieved -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/DetailGeneralTextStyle"
+                android:textStyle="bold"
+                android:text="@string/trailer_session_label"/>
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/trailer_linearlayout"
+                    android:orientation="horizontal">
+                </LinearLayout>
+            </HorizontalScrollView>
+        </LinearLayout>
+    <!-- divider -->
+        <View style="@style/Divider"/>
+    <!-- Reviews view. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/DetailGeneralTextStyle"
+                    android:textStyle="bold"
+                    android:text="@string/review_session_label"/>
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/review_list">
+
+            </ListView>
+
+        </LinearLayout>
+
     </LinearLayout>
 
-    <TextView
-        style="@style/SynopsisTextStyle"
-        android:layout_gravity="center"
-        android:id="@+id/synopsis_text"
-        android:padding="20dp"/>
-
-</LinearLayout>
+</FrameLayout>
